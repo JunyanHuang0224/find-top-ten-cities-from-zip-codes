@@ -1,0 +1,116 @@
+---
+title: "Clustering Zip Codes in the US"
+author: "Junyan Huang"
+date: "October 9, 2018"
+output: word_document
+---
+
+#Introduction
+This is project is to find the top 10 largest cities in the US by applying the cluster analysis techniques on the natinal zip codes.
+
+#Import and prepare data
+```{r}
+library(ggplot2)
+library(dplyr)
+library(maps)
+library(dbscan)
+library(zipcode)
+```
+
+Remove missing values.
+```{r}
+data(zipcode)
+US_raw<- zipcode[complete.cases(zipcode),]
+```
+
+```{r}
+summary(US_raw)
+```
+
+Plot the raw data
+```{r}
+library(ggplot2)
+ggplot(US_raw, aes(longitude, latitude)) +xlim(-180, 180)+ylim(-45, 75)+stat_density2d(aes(alpha=..level..), geom="polygon") +
+  scale_alpha_continuous(limits=c(0,0.5),breaks=seq(0,0.2,by=0.025))+
+  geom_point(colour=139,alpha=0.05)+
+  theme_bw()
+```
+
+The summary  and the plot indicate that the US is ranged from -44.25 to 71.30 in latitude and - 176.64 to 171.18 in longitude. In fact, the US Lat-long coorditates are: latitude from 19.50139 to 64.85694 and longitude from -161.75583 to -68.01197. Those outliers should be places beyond the mianland. 
+
+Remove outliers including Alaska and Hawaii since they are obviously not largest cities.
+```{r}
+lat_low = 20
+lat_up = 51
+long_low=-150
+long_upper = -50
+US<- subset(US_raw, latitude>=lat_low&latitude<=lat_up)
+US<- subset(US, longitude<=long_upper&longitude>=long_low)
+```
+
+```{r}
+ggplot(US, aes(longitude, latitude))+stat_density2d(aes(alpha=..level..), geom="polygon") +
+  scale_alpha_continuous(limits=c(0,0.5),breaks=seq(0,0.2,by=0.025))+
+  geom_point(colour=139,alpha=0.05)+
+  theme_bw()
+```
+
+# DBSCAN Clustering
+DBSCAN clustering is for finding the clusters based on point density and it can ignore noises. Therefore, I will use this algorithm for this project.
+
+The function kNNdistplot() [in dbscan package] can be used to draw the k-distance plot:
+```{r}
+dbscan::kNNdistplot(US[, 4:5], k = 3)
+abline(h = 0.2, lty = 2, col="red")
+```
+
+The above red line shows the optimal eps value to cluster the points. But the aim of this project is just to get the top 10 largest cities. So the eps should be smaller. I will experiment with different values to get the best result.
+
+```{r}
+clusters <- dbscan(select(US, latitude, longitude), eps=0.1, MinPts = 15)
+US$cluster_assigned <- clusters$cluster
+head(US)
+```
+
+```{r}
+clusters
+```
+
+Here are the top 10 clusters:
+```{r}
+top11_clusters <- names(head((sort(table(US$cluster_assigned), decreasing = TRUE)), 11))
+top10_clusters<- top11_clusters[2:11]
+```
+
+
+Divide the top 10 greatest density cities and others.
+```{r}
+top10_cities  <- US %>% filter(cluster_assigned%in%top10_clusters)
+noise  <- US %>% filter(!(cluster_assigned%in%top10_clusters))
+```
+
+Plot the top 10 largest cities.
+```{r}
+ggplot(US, aes(x = longitude, y = latitude, alpha = 0.5)) + 
+  geom_point(aes(fill = "grey"), noise) +
+  geom_point(aes(colour = as.factor(cluster_assigned)), top10_cities,
+             size = 4) +
+  coord_map() +
+  theme(legend.position = "none")
+```
+
+Compute the top 10 city names
+```{r}
+top1 <- names(which.max(table(US$city[US$cluster==top10_clusters[1]])))
+top2 <- names(which.max(table(US$city[US$cluster==top10_clusters[2]])))
+top3 <- names(which.max(table(US$city[US$cluster==top10_clusters[3]])))
+top4 <- names(which.max(table(US$city[US$cluster==top10_clusters[4]])))
+top5 <- names(which.max(table(US$city[US$cluster==top10_clusters[5]])))
+top6 <- names(which.max(table(US$city[US$cluster==top10_clusters[6]])))
+top7 <- names(which.max(table(US$city[US$cluster==top10_clusters[7]])))
+top8 <- names(which.max(table(US$city[US$cluster==top10_clusters[8]])))
+top9 <- names(which.max(table(US$city[US$cluster==top10_clusters[9]])))
+top10 <- names(which.max(table(US$city[US$cluster==top10_clusters[10]])))
+citynames <- c(top1, top2, top3, top4, top5, top6, top7, top8, top9, top10)
+print(citynames)
+```
