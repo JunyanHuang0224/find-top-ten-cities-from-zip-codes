@@ -1,5 +1,5 @@
 ---
-title: "Clustering by Zip Codes in the US"
+title: "Find Top Ten Largest Cities From US Zip Codes (Hierarchical Clustering)"
 author: "Junyan Huang"
 date: "October 7, 2018"
 output: word_document

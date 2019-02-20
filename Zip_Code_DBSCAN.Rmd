@@ -1,5 +1,5 @@
 ---
-title: "Clustering Zip Codes in the US"
+title: "Find Top Ten Largest Cities From US Zip Codes (DBSCAN)"
 author: "Junyan Huang"
 date: "October 9, 2018"
 output: word_document
